@@ -114,8 +114,14 @@ export function fetchTorrent(url, tabId) {
             type: 'fetchTorrent',
             url: url,
         }, (response) => {
+            if (chrome.runtime.lastError || !response)
+                return reject(new Error(chrome.i18n.getMessage('sourceTabDestroyedError')));
+
             if (response instanceof Error)
                 return reject(response);
+
+            if (response.error)
+                return reject(new Error(response.error));
 
             if (!response.ok)
                 return reject(new Error(chrome.i18n.getMessage('torrentFetchError', response.status.toString() + ': ' + response.statusText)));
@@ -127,7 +133,7 @@ export function fetchTorrent(url, tabId) {
                 torrent: response.content,
                 torrentName: name,
                 filename: response.filename || null,
-            }));
+            })).catch(reject);
         })
     });
 }

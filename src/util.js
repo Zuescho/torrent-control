@@ -303,12 +303,13 @@ export function getTorrentName(data) {
                 let bytes = 0;
                 text = '';
 
-                while (bytes < offset[1]) {
-                    let char = reader.result.charAt(index + text.length);
+                while (bytes < Number(offset[1]) && index + text.length < reader.result.length) {
+                    const char = String.fromCodePoint(reader.result.codePointAt(index + text.length));
 
                     text += char;
-                    bytes += unescape(encodeURI(char)).length;
+                    bytes += new TextEncoder().encode(char).length;
                 }
+                if (bytes !== Number(offset[1])) text = false;
             }
 
             resolve(text);

@@ -1,4 +1,5 @@
 {
+  "tagsOption": {"message": "Tags (comma-separated)"},
   "addonConfigurationTitle": {
     "message": "Addon configuration",
     "description": "Addon configuration"

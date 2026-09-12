@@ -94,6 +94,9 @@ export default class qBittorrentApi extends BaseClient {
                 if (options.label)
                     form.append('category', options.label);
 
+                if (options.tags)
+                    form.append('tags', options.tags.split(',').map(tag => tag.trim()).filter(Boolean).join(','));
+
                 if (options.sequentialDownload)
                     form.append('sequentialDownload', 'true');
 
@@ -147,6 +150,9 @@ export default class qBittorrentApi extends BaseClient {
                 if (options.label)
                     form.append('category', options.label);
 
+                if (options.tags)
+                    form.append('tags', options.tags.split(',').map(tag => tag.trim()).filter(Boolean).join(','));
+
                 if (options.sequentialDownload)
                     form.append('sequentialDownload', 'true');
 
@@ -199,6 +205,21 @@ export default class qBittorrentApi extends BaseClient {
         });
     }
 
+    _isOwnRequest(details) {
+        try {
+            const endpoint = new URL(this.settings.hostname);
+            const target = new URL(details.url);
+            const extensionRoot = chrome.runtime.getURL('');
+            return details.tabId === -1
+                && !!extensionRoot
+                && (details.originUrl || details.documentUrl || '').startsWith(extensionRoot)
+                && target.origin === endpoint.origin
+                && target.pathname.startsWith(endpoint.pathname.replace(/\/$/, '') + '/');
+        } catch {
+            return false;
+        }
+    }
+
     _attachListeners() {
         const {hostname, httpAuth} = this.settings;
 
@@ -207,6 +228,7 @@ export default class qBittorrentApi extends BaseClient {
         }
 
         this.addHeadersReceivedEventListener((details) => {
+            if (!this._isOwnRequest(details)) return;
             const cookie = this.getCookie(details.responseHeaders, '(?:SID|QBT_SID_\\d+)');
 
             if (cookie) {
@@ -221,6 +243,7 @@ export default class qBittorrentApi extends BaseClient {
         });
 
         this.addBeforeSendHeadersEventListener((details) => {
+            if (!this._isOwnRequest(details)) return;
             let requestHeaders = this.filterHeaders(details.requestHeaders, [
                 'cookie',
                 'origin',
@@ -234,7 +257,7 @@ export default class qBittorrentApi extends BaseClient {
 
             requestHeaders.push({
                 name: 'Origin',
-                value: hostname
+                value: new URL(hostname).origin
             });
 
             if (this.cookie) {
