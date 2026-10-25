@@ -14,6 +14,7 @@ const livePassword = liveUrl && passwordFile
 if (liveUrl && !livePassword) throw new Error('Live mode requires a password file containing a Password: line');
 const live = liveUrl ? {application: 'qbittorrent', hostname: liveUrl, username: process.env.TC_QBT_USERNAME || 'admin', password: livePassword} : null;
 const requests = [];
+const smokeMagnet = 'magnet:?xt=urn:btih:0123456789012345678901234567890123456789&dn=Smoke+Test';
 let finish;
 const completion = new Promise(resolve => { finish = resolve; });
 const handler = async (request, response) => {
@@ -24,6 +25,14 @@ const handler = async (request, response) => {
         response.writeHead(204, {'Set-Cookie': ['proxy=irrelevant; Path=/', 'QBT_SID_8080=isolated; HttpOnly; Path=/']});
     } else if (request.url === '/report') {
         finish(JSON.parse(body));
+    } else if (request.url === '/magnet-page' || request.url === '/magnet-frame') {
+        // A magnet link in the top frame and in a subframe, clicked by the page
+        // itself. Without the content script the click leaves the browser.
+        response.writeHead(200, {'Content-Type': 'text/html'});
+        response.end(`<!doctype html><a id="magnet" href="${smokeMagnet}">magnet</a>`
+            + (request.url === '/magnet-page' ? '<iframe src="/magnet-frame"></iframe>' : '')
+            + '<script>addEventListener("load", () => document.getElementById("magnet").click())</script>');
+        return;
     }
     response.end('Ok.');
 };
@@ -43,7 +52,8 @@ try {
         manifest_version: 2, name: 'Torrent Control smoke test', version: '1.0',
         default_locale: 'en',
         browser_specific_settings: {gecko: {id: 'smoke-test@torrent-control.invalid'}},
-        permissions: ['webRequest', 'webRequestBlocking', 'http://127.0.0.1/*', ...(live ? [new URL(liveUrl).protocol + '//' + new URL(liveUrl).hostname + '/*'] : [])],
+        permissions: ['webRequest', 'webRequestBlocking', 'storage', 'http://127.0.0.1/*', ...(live ? [new URL(liveUrl).protocol + '//' + new URL(liveUrl).hostname + '/*'] : [])],
+        content_scripts: [{matches: ['http://127.0.0.1/*'], js: ['magnet-links.js'], all_frames: true, run_at: 'document_start'}],
         background: {page: 'smoke.html'},
     }));
     await writeFile(join(directory, 'smoke.js'), `
@@ -51,6 +61,11 @@ import {getClient} from './util.js';
 const endpoint = ${JSON.stringify(endpoint)};
 const client = getClient({application: 'qbittorrent', hostname: endpoint + '/', username: 'fixture', password: 'fixture'});
 const live = ${JSON.stringify(live)};
+const smokeMagnet = ${JSON.stringify(smokeMagnet)};
+const caughtMagnets = [];
+chrome.runtime.onMessage.addListener((request) => {
+    if (request.type === 'addMagnetLink') caughtMagnets.push(request.url);
+});
 try {
     await client.logIn();
     if (client.cookie !== 'QBT_SID_8080=isolated') throw new Error('Session cookie was not captured');
@@ -58,6 +73,16 @@ try {
     await client.addTorrent(new Blob(['fixture']), {paused: true, tags: 'one, two'});
     await fetch(${JSON.stringify(otherEndpoint + '/other-port')});
     await client.logOut();
+    const tab = await new Promise(resolve => chrome.tabs.create({url: endpoint + '/magnet-page', active: false}, resolve));
+    await new Promise((resolve, reject) => {
+        const deadline = Date.now() + 15000;
+        const poll = setInterval(() => {
+            if (caughtMagnets.length >= 2) { clearInterval(poll); resolve(); }
+            else if (Date.now() > deadline) { clearInterval(poll); reject(new Error('Magnet clicks caught: ' + caughtMagnets.length + ' of 2')); }
+        }, 100);
+    });
+    chrome.tabs.remove(tab.id);
+    if (caughtMagnets.some(url => url !== smokeMagnet)) throw new Error('Unexpected magnet URI: ' + caughtMagnets.join(' '));
     let version = null;
     if (live) {
         const liveClient = getClient(live);
@@ -97,7 +122,8 @@ try {
     const other = requests.find(request => request.path === '/other-port');
     assert.equal(other.headers.cookie, undefined);
     assert.notEqual(other.headers.origin, endpoint);
-    console.log('PASS: real Firefox login 204, multiple cookies, magnet/file submission, tags, stopped flag and port isolation.');
+    assert.equal(requests.filter(request => request.path === '/magnet-frame').length, 1);
+    console.log('PASS: real Firefox login 204, multiple cookies, magnet/file submission, tags, stopped flag, port isolation and caught magnet clicks in both frames.');
     if (live) console.log('PASS: live HTTPS login, authenticated version request and logout: ' + result.version);
 } finally {
     clearTimeout(timer);

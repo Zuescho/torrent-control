@@ -79,6 +79,7 @@ const isLabelsSupported = (servers) => servers.some((server) => {
 function persistOptions() {
     options.globals.contextMenu = ~~document.querySelector('[name="contextmenu"]:checked').value;
     options.globals.catchUrls = document.querySelector('#catchurls').checked;
+    options.globals.catchMagnetLinks = document.querySelector('#catchmagnetlinks').checked;
     options.globals.addPaused = document.querySelector('#addpaused').checked;
     options.globals.addAdvanced = document.querySelector('#addadvanced').checked;
     options.globals.enableNotifications = document.querySelector('#enablenotifications').checked;
@@ -155,6 +156,7 @@ function restoreOptions() {
 
         document.querySelector('[name="contextmenu"][value="' + options.globals.contextMenu + '"]').checked = true;
         document.querySelector('#catchurls').checked = options.globals.catchUrls;
+        document.querySelector('#catchmagnetlinks').checked = options.globals.catchMagnetLinks;
         document.querySelector('#addpaused').checked = options.globals.addPaused;
         document.querySelector('#addadvanced').checked = options.globals.addAdvanced;
         document.querySelector('#enablenotifications').checked = options.globals.enableNotifications;

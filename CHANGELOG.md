@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.1 — Magnet link handling — 2026-10-10
+
+* Catch magnet-link clicks in the page instead of relying on Firefox's `magnet:`
+  protocol-handler preference. Clicking a magnet no longer ends in the operating
+  system's "no app associated with this file" error when the handler points
+  elsewhere. Works in subframes, respects modified clicks (Ctrl/Shift/Alt/middle)
+  and can be turned off with the new **Catch magnet links clicked on web pages**
+  option. The protocol handler still works when Firefox is set to use it.
+* Rebuild the magnet URI from protocol-handler requests without losing an
+  unencoded query or fragment, and match the `magnet:` scheme case-insensitively.
+* Report a missing server configuration instead of silently dropping a magnet,
+  and open the options page.
+* Self-distributed installs now update themselves: the manifest declares an
+  update URL, `npm run build:updates` maintains `updates.json` with each signed
+  release and its SHA-256, and `npm run build:source` rebuilds the reviewer
+  source archive. The release procedure is documented in the README.
+
+Validation: 136 passing tests plus a real Firefox smoke test that clicks magnet
+links in a page and a subframe and checks the background receives both.
+
 ## 0.3.0 — Mana test build — 2026-09-12
 
 Based on upstream 0.2.51 (`d71bdb2`).

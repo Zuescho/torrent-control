@@ -1,10 +1,9 @@
 import sinon from 'sinon';
 import {JSDOM} from 'jsdom';
-import {readFile} from 'node:fs/promises';
-import vm from 'node:vm';
 import qBittorrentApi from '../src/lib/qbittorrent.js';
 import BaseClient from '../src/lib/baseclient.js';
 import {getTorrentName} from '../src/util.js';
+import {loadContentScript} from './helpers.js';
 
 describe('Mana regressions', () => {
     const own = {
@@ -87,14 +86,8 @@ describe('Mana regressions', () => {
     });
 
     it('fetches tracker files with the source session and referrer, and serializes failures', async () => {
-        let listener;
         const fetchStub = sinon.stub().resolves({ok: true, status: 200, headers: new Headers(), blob: async () => 'fixture'});
-        const context = {
-            URL, Headers, fetch: fetchStub,
-            window: {location: {href: 'https://tracker.example/details?id=1'}},
-            chrome: {runtime: {onMessage: {addListener: fn => { listener = fn; }}}},
-        };
-        vm.runInNewContext(await readFile('src/content-script.js', 'utf8'), context);
+        const {context, onMessage: listener} = await loadContentScript({fetch: fetchStub});
         await listener({type: 'fetchTorrent', url: '/download?id=1'});
         expect(fetchStub.firstCall.args[0]).to.equal('https://tracker.example/download?id=1');
         expect(fetchStub.firstCall.args[1].credentials).to.equal('include');

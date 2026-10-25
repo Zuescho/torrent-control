@@ -1,16 +1,20 @@
 {
   "name": "torrent-control-mana",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "repository": "https://github.com/Zuescho/torrent-control.git",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "start": "web-ext run --source-dir ./src/",
     "startdev": "web-ext run --firefox=firefoxdeveloperedition --source-dir ./src/",
-    "build": "web-ext build --source-dir ./src/",
+    "build": "web-ext build --source-dir ./src/ --overwrite-dest",
+    "build:source": "node scripts/build-source.mjs",
+    "build:updates": "node scripts/build-updates.mjs",
     "test": "mocha --require ./test/env.js --recursive",
-    "lint": "web-ext lint --source-dir ./src/",
-    "test:firefox": "node scripts/firefox-smoke.mjs"
+    "lint": "web-ext lint --source-dir ./src/ --self-hosted",
+    "test:firefox": "node scripts/firefox-smoke.mjs",
+    "sign:listed": "web-ext sign --source-dir ./src/ --channel listed",
+    "sign:unlisted": "web-ext sign --source-dir ./src/ --channel unlisted"
   },
   "devDependencies": {
     "@types/chai": "^5.2.3",
