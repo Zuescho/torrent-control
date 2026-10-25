@@ -1,4 +1,5 @@
 {
+  "tagsOption": {"message": "Tags (comma-separated)"},
   "addonConfigurationTitle": {
     "message": "Addon configuration",
     "description": "Addon configuration"
@@ -22,6 +23,10 @@
   "catchUrlsOption": {
     "message": "Catch torrent URLs",
     "description": "Catch torrent URLs"
+  },
+  "catchMagnetLinksOption": {
+    "message": "Catch magnet links clicked on web pages",
+    "description": "Catch magnet link clicks instead of leaving them to the browser's protocol handler"
   },
   "addAdvancedOption": {
     "message": "Add via advanced dialog",
@@ -178,6 +183,10 @@
   "sourceTabDestroyedError": {
     "message": "Source tab no longer exists.",
     "description": "Tab destroyed error."
+  },
+  "noServerConfiguredError": {
+    "message": "No server configured. Open the options page to add one.",
+    "description": "Server not configured error."
   },
   "sequentialDownloadOption": {
     "message": "Sequential download",

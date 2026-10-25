@@ -21,6 +21,9 @@ global.FormData = class FormData {
 };
 
 export const mochaHooks = {
+    beforeEach() {
+        chrome.runtime.getURL.returns('moz-extension://torrent-control/');
+    },
     afterEach() {
         sinon.restore();
         chrome.flush();

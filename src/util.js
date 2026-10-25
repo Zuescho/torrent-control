@@ -222,6 +222,7 @@ export function loadOptions() {
             addAdvanced: false,
             contextMenu: 1,
             catchUrls: true,
+            catchMagnetLinks: true,
             enableNotifications: true,
             enableRssFeeds: true,
             labels: [],
@@ -256,7 +257,39 @@ export function saveOptions(options) {
 }
 
 export function isMagnetUrl(url) {
-    return !!url.match(/^magnet:/);
+    return !!url.match(/^magnet:/i);
+}
+
+/**
+ * Rebuild the magnet URI from a request to the `magnet:` protocol handler.
+ *
+ * Firefox substitutes the percent-encoded URI into the manifest uriTemplate,
+ * so the whole magnet normally lands in the path. Reassemble a query or
+ * fragment that arrived unencoded instead of dropping it.
+ *
+ * @param url {string}
+ * @returns {string|false}
+ */
+export function parseMagnetUriFromHandlerUrl(url) {
+    let parsed;
+
+    try {
+        parsed = new URL(url);
+    } catch (e) {
+        return false;
+    }
+
+    let path = parsed.pathname.replace(/^\//, '');
+
+    try {
+        path = decodeURIComponent(path);
+    } catch (e) {
+        // Keep the raw path when it carries a malformed percent escape.
+    }
+
+    const magnetUri = path + parsed.search + parsed.hash;
+
+    return isMagnetUrl(magnetUri) ? magnetUri : false;
 }
 
 /**
@@ -303,12 +336,13 @@ export function getTorrentName(data) {
                 let bytes = 0;
                 text = '';
 
-                while (bytes < offset[1]) {
-                    let char = reader.result.charAt(index + text.length);
+                while (bytes < Number(offset[1]) && index + text.length < reader.result.length) {
+                    const char = String.fromCodePoint(reader.result.codePointAt(index + text.length));
 
                     text += char;
-                    bytes += unescape(encodeURI(char)).length;
+                    bytes += new TextEncoder().encode(char).length;
                 }
+                if (bytes !== Number(offset[1])) text = false;
             }
 
             resolve(text);

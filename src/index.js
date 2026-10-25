@@ -9,6 +9,7 @@ import {
     getHostFilter,
     getTorrentName,
     getMagnetUrlName,
+    parseMagnetUriFromHandlerUrl,
     regExpFromString,
 } from './util.js';
 
@@ -114,8 +115,14 @@ export function fetchTorrent(url, tabId) {
             type: 'fetchTorrent',
             url: url,
         }, (response) => {
+            if (chrome.runtime.lastError || !response)
+                return reject(new Error(chrome.i18n.getMessage('sourceTabDestroyedError')));
+
             if (response instanceof Error)
                 return reject(response);
+
+            if (response.error)
+                return reject(new Error(response.error));
 
             if (!response.ok)
                 return reject(new Error(chrome.i18n.getMessage('torrentFetchError', response.status.toString() + ': ' + response.statusText)));
@@ -127,7 +134,7 @@ export function fetchTorrent(url, tabId) {
                 torrent: response.content,
                 torrentName: name,
                 filename: response.filename || null,
-            }));
+            })).catch(reject);
         })
     });
 }
@@ -465,19 +472,12 @@ function registerHandler() {
     });
 
     chrome.webRequest.onBeforeRequest.addListener((details) => {
-            let parser = document.createElement('a');
-            parser.href = details.url;
-            let magnetUri = decodeURIComponent(parser.pathname).substr(1);
+            const magnetUri = parseMagnetUriFromHandlerUrl(details.url);
 
-            if (options.globals.addAdvanced) {
-                addAdvancedDialog(magnetUri);
-            } else {
-                const clientOptions = options.servers[options.globals.currentServer].clientOptions || {};
-                addTorrent(magnetUri, null, {
-                    paused: options.globals.addPaused,
-                    ...clientOptions
-                });
+            if (magnetUri) {
+                addMagnetUri(magnetUri);
             }
+
             return {cancel: true}
         },
         {urls: ['https://torrent-control.invalid/*']},
@@ -522,8 +522,46 @@ function registerHandler() {
                     ...request.options
                 });
             }
+
+            // A magnet link the content script caught before the browser could
+            // hand it to an external application.
+            if (request.type === 'addMagnetLink' && options.globals.catchMagnetLinks !== false) {
+                addMagnetUri(request.url);
+            }
         }
     );
+}
+
+/**
+ * Add a magnet URI that reached the extension without a source tab, either
+ * through the protocol handler or from a caught in-page click.
+ *
+ * @param magnetUri {string}
+ */
+function addMagnetUri(magnetUri) {
+    if (!isMagnetUrl(magnetUri)) {
+        return;
+    }
+
+    if (!isConfigured()) {
+        notification('❌ ' + chrome.i18n.getMessage('noServerConfiguredError'));
+        chrome.runtime.openOptionsPage();
+
+        return;
+    }
+
+    if (options.globals.addAdvanced) {
+        addAdvancedDialog(magnetUri);
+
+        return;
+    }
+
+    const clientOptions = options.servers[options.globals.currentServer].clientOptions || {};
+
+    addTorrent(magnetUri, null, {
+        paused: options.globals.addPaused,
+        ...clientOptions
+    });
 }
 
 async function addAdvancedDialog(url, tabId = null) {

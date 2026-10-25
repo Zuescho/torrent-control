@@ -34,6 +34,7 @@ describe('qBittorrentApi (5.0.0)', () => {
         expect(fetchStub.firstCall.args[1].body.toString()).to.equal('username=testuser&password=testpassw0rd');
 
         instance.listeners.onHeadersReceived({
+            url: 'https://example.com:1234/api/v2/test', originUrl: 'moz-extension://torrent-control/background.html', tabId: -1,
             responseHeaders: [
                 {
                     name: 'set-cookie',
@@ -65,6 +66,7 @@ describe('qBittorrentApi (5.0.0)', () => {
         expect(fetchStub.firstCall.args[1].body.toString()).to.equal('username=testuser&password=testpassw0rd');
 
         instance.listeners.onHeadersReceived({
+            url: 'https://example.com:1234/api/v2/test', originUrl: 'moz-extension://torrent-control/background.html', tabId: -1,
             responseHeaders: [
                 {
                     name: 'set-cookie',

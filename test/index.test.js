@@ -8,6 +8,17 @@ import {
 } from './helpers.js';
 
 describe('Main tests', () => {
+    for (const response of [undefined, {error: 'Source download failed'}]) {
+        it(`rejects missing or serialized content-script errors: ${JSON.stringify(response)}`, async () => {
+            chrome.tabs.get.withArgs(3).yields({});
+            chrome.tabs.sendMessage.yields(response);
+            let error;
+            try { await fetchTorrent('https://example.com/test.torrent', 3); }
+            catch (caught) { error = caught; }
+            expect(error).to.be.instanceOf(Error);
+            if (response) expect(error.message).to.equal(response.error);
+        });
+    }
     beforeEach(() => {
         chrome.flush();
     });

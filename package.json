@@ -1,14 +1,20 @@
 {
-  "name": "torrent-control",
-  "version": "0.1.0",
-  "repository": "git@github.com:Mika-/torrent-control.git",
+  "name": "torrent-control-mana",
+  "version": "0.3.1",
+  "repository": "https://github.com/Zuescho/torrent-control.git",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "start": "web-ext run --source-dir ./src/",
     "startdev": "web-ext run --firefox=firefoxdeveloperedition --source-dir ./src/",
-    "build": "web-ext build --source-dir ./src/",
-    "test": "mocha --require ./test/env.js --recursive"
+    "build": "web-ext build --source-dir ./src/ --overwrite-dest",
+    "build:source": "node scripts/build-source.mjs",
+    "build:updates": "node scripts/build-updates.mjs",
+    "test": "mocha --require ./test/env.js --recursive",
+    "lint": "web-ext lint --source-dir ./src/ --self-hosted",
+    "test:firefox": "node scripts/firefox-smoke.mjs",
+    "sign:listed": "web-ext sign --source-dir ./src/ --channel listed",
+    "sign:unlisted": "web-ext sign --source-dir ./src/ --channel unlisted"
   },
   "devDependencies": {
     "@types/chai": "^5.2.3",
@@ -17,9 +23,12 @@
     "@types/sinon": "^22.0.0",
     "chai": "^6.2.2",
     "jsdom": "^29.1.1",
-    "mocha": "^11.7.5",
+    "mocha": "^12.0.1",
     "sinon": "^22.0.0",
     "sinon-chrome": "^3.0.1",
     "web-ext": "^10.1.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

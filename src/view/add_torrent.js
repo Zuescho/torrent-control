@@ -85,8 +85,10 @@ function selectServer(serverId) {
         labelSelect.disabled = true;
     }
 
-    if (!client.clientCapabilities || !client.clientCapabilities.includes('paused'))
-        document.querySelector('#addpaused').disabled = true;
+    const supportsTags = ['qbittorrent', 'qbittorrent_467'].includes(client.id);
+    document.querySelector('#tags-row').hidden = !supportsTags;
+    document.querySelector('#tags').disabled = !supportsTags;
+    document.querySelector('#addpaused').disabled = !client.clientCapabilities?.includes('paused');
 }
 
 document.addEventListener('DOMContentLoaded', restoreOptions);
@@ -108,6 +110,7 @@ document.querySelector('#add-torrent').addEventListener('click', (e) => {
         paused: addPaused,
         label: label !== '' ? label : null,
         path: path !== '' ? path : null,
+        tags: document.querySelector('#tags').disabled ? null : document.querySelector('#tags').value.trim(),
     };
 
     chrome.runtime.sendMessage({

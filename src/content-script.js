@@ -42,7 +42,14 @@ async function listener(request) {
     }
 
     try {
-        const response = await fetch(request.url, {
+        const url = new URL(request.url, window.location.href);
+        if (!['http:', 'https:'].includes(url.protocol)) {
+            return {error: 'Unsupported torrent URL scheme'};
+        }
+        const response = await fetch(url.href, {
+            credentials: 'include',
+            referrer: window.location.href,
+            referrerPolicy: 'strict-origin-when-cross-origin',
             headers: new Headers({
                 'accept': 'application/x-bittorrent,application/octet-stream,*/*',
             }),
@@ -60,7 +67,7 @@ async function listener(request) {
             content: await response.blob(),
         };
     } catch (e) {
-        return e;
+        return {error: 'Unable to fetch torrent from the source tab. Check its login/session and retry.'};
     }
 }
 

@@ -65,6 +65,7 @@ export default class BaseClient {
         const maxAuthAttempts = 2;
 
         this.listeners.onAuthRequired = (details) => {
+            if (this._isOwnRequest && !this._isOwnRequest(details)) return;
             const attempts = (this.pendingRequests[details.requestId] || 0) + 1;
 
             if (attempts > maxAuthAttempts)
@@ -116,7 +117,7 @@ export default class BaseClient {
     }
 
     parseJsonResponse(response) {
-        const contentType = response.headers.get('content-type');
+        const contentType = response.headers.get('content-type') || '';
         const isJson = !!contentType.match(/application\/json/)
 
         if (response.ok && isJson)
@@ -140,14 +141,12 @@ export default class BaseClient {
     }
 
     getCookie(headers, key) {
-        const cookie = headers.find((header) => {
-            return header.name.toLowerCase() === 'set-cookie';
-        });
-
-        if (cookie) {
-            const regex = new RegExp(`(${key}=[^;]+)`);
-
-            return cookie.value.match(regex)?.[1] || null;
+        // Firefox may combine multiple Set-Cookie headers with newlines.
+        const regex = new RegExp(`^(${key}=[^;\\r\\n]+)`, 'm');
+        for (const header of headers) {
+            if (header.name.toLowerCase() !== 'set-cookie') continue;
+            const match = header.value.match(regex);
+            if (match) return match[1];
         }
 
         return null;
